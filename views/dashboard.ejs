@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard - Virelia</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+        }
+        .dashboard-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease;
+        }
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+        .user-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .balance-badge {
+            background: linear-gradient(45deg, #ffd700, #ffed4a);
+            color: #333;
+            font-weight: bold;
+        }
+        .navbar-custom {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        .server-status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 0.8rem;
+        }
+        .server-online {
+            color: #28a745;
+        }
+        .server-offline {
+            color: #6c757d;
+        }
+        .db-user {
+            border-left: 4px solid #28a745;
+        }
+        .server-user {
+            border-left: 4px solid #17a2b8;
+        }
+        .sync-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .search-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .search-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        .search-input:focus {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+            color: white;
+        }
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .filter-btn:hover, .filter-btn.active {
+            background: rgba(0, 123, 255, 0.7);
+            border-color: #007bff;
+        }
+        .user-card {
+            transition: opacity 0.3s ease;
+        }
+        .user-card.hidden {
+            display: none;
+        }
+        .search-stats {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 10px 15px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body class="text-light">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fab fa-discord"></i> Virelia Dashboard
+            </a>
+            <div class="navbar-nav ms-auto">
+                <% if (user && hasEditPermission) { %>
+                    <button class="btn btn-outline-light btn-sm me-2" onclick="syncWithServer()">
+                        <i class="fas fa-sync-alt"></i> Sync Server
+                    </button>
+                <% } %>
+                <% if (user) { %>
+                    <span class="navbar-text me-3">
+                        Welcome, <%= user.username %>
+                    </span>
+                    <a href="/logout" class="btn btn-outline-light btn-sm">Logout</a>
+                <% } else { %>
+                    <a href="/auth/discord" class="btn btn-primary btn-sm">Login</a>
+                <% } %>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Search Container -->
+        <div class="search-container">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0" style="border-color: rgba(255, 255, 255, 0.3);">
+                            <i class="fas fa-search text-light"></i>
+                        </span>
+                        <input type="text" class="form-control search-input border-start-0" 
+                               id="searchInput" placeholder="Search by username, Discord ID, or email..."
+                               onkeyup="performSearch()">
+                        <button class="btn btn-outline-light" type="button" onclick="clearSearch()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">
+                            <i class="fas fa-users"></i> All
+                        </button>
+                        <button class="filter-btn" data-filter="db" onclick="setFilter('db')">
+                            <i class="fas fa-database"></i> DB Users
+                        </button>
+                        <button class="filter-btn" data-filter="server" onclick="setFilter('server')">
+                            <i class="fas fa-server"></i> Server Only
+                        </button>
+                        <button class="filter-btn" data-filter="online" onclick="setFilter('online')">
+                            <i class="fas fa-circle text-success"></i> Online
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Stats -->
+        <div class="search-stats" id="searchStats" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="fas fa-search"></i> 
+                    Search Results: <span id="searchCount">0</span> of <span id="totalCount"><%= users.length %></span> users
+                </span>
+                <button class="btn btn-sm btn-outline-light" onclick="clearSearch()">
+                    <i class="fas fa-times"></i> Clear Search
+                </button>
+            </div>
+        </div>
+
+        <!-- Statistics Row -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card dashboard-card text-center">
+                    <div class="card-body">
+                        <h5><i class="fas fa-users text-success"></i> Total Users</h5>
+                        <h2 id="totalUsersCount"><%= users.length %></h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card dashboard-card text-center">
+                    <div class="card-body">
+                        <h5><i class="fas fa-database text-primary"></i> DB Users</h5>
+                        <h2 id="dbUsersCount"><%= users.filter(u => u.created_at).length %></h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card dashboard-card text-center">
+                    <div class="card-body">
+                        <h5><i class="fas fa-server text-info"></i> Server Members</h5>
+                        <h2 id="serverUsersCount"><%= users.filter(u => u.in_server).length %></h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section Title -->
+        <div class="row mb-3">
+            <div class="col">
+                <h3><i class="fas fa-users"></i> User Management</h3>
+                <p class="text-light opacity-75">
+                    <span class="badge bg-success me-2">Green Border</span> Database Users (Editable)
+                    <span class="badge bg-info me-2 ms-2">Blue Border</span> Server Members
+                </p>
+            </div>
+        </div>
+
+        <!-- Users Grid -->
+        <div class="row" id="usersContainer">
+            <% users.forEach(u => { %>
+                <div class="col-md-6 col-lg-4 mb-4 user-card" 
+                     data-username="<%= u.username.toLowerCase() %>" 
+                     data-id="<%= u._id %>" 
+                     data-email="<%= (u.email || '').toLowerCase() %>"
+                     data-type="<%= u.created_at ? 'db' : 'server' %>"
+                     data-online="<%= u.in_server ? 'true' : 'false' %>">
+                    <div class="card dashboard-card text-light h-100 <%= u.created_at ? 'db-user' : 'server-user' %>">
+                        <!-- Server Status Indicator -->
+                        <div class="server-status">
+                            <% if (u.in_server) { %>
+                                <i class="fas fa-circle server-online" title="Online in Server"></i>
+                            <% } else { %>
+                                <i class="fas fa-circle server-offline" title="Not in Server"></i>
+                            <% } %>
+                        </div>
+
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <% if (u.avatar) { %>
+                                    <img src="https://cdn.discordapp.com/avatars/<%= u._id %>/<%= u.avatar %>.png" 
+                                         class="user-avatar me-3" alt="Avatar">
+                                <% } else { %>
+                                    <div class="user-avatar bg-secondary d-flex align-items-center justify-content-center me-3">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                <% } %>
+                                <div>
+                                    <h6 class="card-title mb-1">
+                                        <%= u.username %>
+                                        <% if (!u.created_at) { %>
+                                            <small class="badge bg-info ms-1">Server Only</small>
+                                        <% } %>
+                                    </h6>
+                                    <small class="text-muted">ID: <%= u._id %></small>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span>VV Balance:</span>
+                                    <span class="badge balance-badge"><%= (u.vv_balance || 0).toFixed(2) %></span>
+                                </div>
+                                
+                                <% if (u.email) { %>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span>Email:</span>
+                                        <small class="text-truncate" style="max-width: 150px;"><%= u.email %></small>
+                                    </div>
+                                <% } %>
+                                
+                                <% if (u.created_at) { %>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span>Joined DB:</span>
+                                        <small><%= new Date(u.created_at).toLocaleDateString() %></small>
+                                    </div>
+                                <% } %>
+                                
+                                <% if (u.last_login) { %>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span>Last Login:</span>
+                                        <small><%= new Date(u.last_login).toLocaleDateString() %></small>
+                                    </div>
+                                <% } %>
+
+                                <% if (u.server_roles && u.server_roles.length > 0) { %>
+                                    <div class="mb-2">
+                                        <small class="text-muted">Server Roles: <%= u.server_roles.length %></small>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+                        
+                        <div class="card-footer bg-transparent border-top-0">
+                            <% if (user && hasEditPermission && u.created_at) { %>
+                                <a href="/edit/<%= u._id %>" class="btn btn-primary btn-sm w-100">
+                                    <i class="fas fa-edit"></i> Edit User
+                                </a>
+                            <% } else if (user && hasEditPermission && !u.created_at) { %>
+                                <button class="btn btn-info btn-sm w-100" onclick="promoteUser('<%= u._id %>')">
+                                    <i class="fas fa-user-plus"></i> Add to Database
+                                </button>
+                            <% } else { %>
+                                <button class="btn btn-secondary btn-sm w-100" disabled>
+                                    <i class="fas fa-lock"></i> View Only
+                                </button>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+            <% }) %>
+        </div>
+
+        <!-- No Results Message -->
+        <div class="row" id="noResultsMessage" style="display: none;">
+            <div class="col-12 text-center">
+                <div class="card dashboard-card">
+                    <div class="card-body">
+                        <i class="fas fa-search fa-3x mb-3 opacity-50"></i>
+                        <h4>No Results Found</h4>
+                        <p class="opacity-75">No users match your search criteria. Try adjusting your search terms or filters.</p>
+                        <button class="btn btn-primary" onclick="clearSearch()">
+                            <i class="fas fa-times"></i> Clear Search
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <% if (users.length === 0) { %>
+            <div class="row" id="noUsersMessage">
+                <div class="col-12 text-center">
+                    <div class="card dashboard-card">
+                        <div class="card-body">
+                            <i class="fas fa-users fa-3x mb-3 opacity-50"></i>
+                            <h4>No Users Found</h4>
+                            <p class="opacity-75">No users have been found. Try syncing with the Discord server to fetch members.</p>
+                            <% if (user && hasEditPermission) { %>
+                                <button class="btn btn-primary" onclick="syncWithServer()">
+                                    <i class="fas fa-sync-alt"></i> Sync with Server
+                                </button>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <% } %>
+    </div>
+
+    <!-- Floating Sync Button -->
+    <% if (user && hasEditPermission) { %>
+        <button class="btn btn-success sync-button" onclick="syncWithServer()" title="Sync with Discord Server">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+    <% } %>
+
+    <!-- Loading Modal -->
+    <div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-body text-center">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h5>Syncing with Discord Server...</h5>
+                    <p class="text-muted">Please wait while we fetch the latest member data.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentFilter = 'all';
+        let currentSearch = '';
+
+        function performSearch() {
+            const searchInput = document.getElementById('searchInput');
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            currentSearch = searchTerm;
+            
+            filterAndSearch();
+        }
+
+        function setFilter(filter) {
+            // Update active filter button
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
+            
+            currentFilter = filter;
+            filterAndSearch();
+        }
+
+        function filterAndSearch() {
+            const userCards = document.querySelectorAll('.user-card');
+            const searchStats = document.getElementById('searchStats');
+            const noResultsMessage = document.getElementById('noResultsMessage');
+            let visibleCount = 0;
+            
+            userCards.forEach(card => {
+                const username = card.dataset.username;
+                const id = card.dataset.id;
+                const email = card.dataset.email;
+                const type = card.dataset.type;
+                const online = card.dataset.online;
+                
+                // Check search criteria
+                let matchesSearch = true;
+                if (currentSearch) {
+                    matchesSearch = username.includes(currentSearch) || 
+                                  id.includes(currentSearch) || 
+                                  email.includes(currentSearch);
+                }
+                
+                // Check filter criteria
+                let matchesFilter = true;
+                switch (currentFilter) {
+                    case 'db':
+                        matchesFilter = type === 'db';
+                        break;
+                    case 'server':
+                        matchesFilter = type === 'server';
+                        break;
+                    case 'online':
+                        matchesFilter = online === 'true';
+                        break;
+                    case 'all':
+                    default:
+                        matchesFilter = true;
+                        break;
+                }
+                
+                // Show/hide card based on criteria
+                if (matchesSearch && matchesFilter) {
+                    card.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            // Update search stats
+            if (currentSearch || currentFilter !== 'all') {
+                searchStats.style.display = 'block';
+                document.getElementById('searchCount').textContent = visibleCount;
+            } else {
+                searchStats.style.display = 'none';
+            }
+            
+            // Show/hide no results message
+            if (visibleCount === 0 && userCards.length > 0) {
+                noResultsMessage.style.display = 'block';
+            } else {
+                noResultsMessage.style.display = 'none';
+            }
+            
+            // Update statistics counters
+            updateStatistics();
+        }
+
+        function updateStatistics() {
+            const visibleCards = document.querySelectorAll('.user-card[style="display: block;"], .user-card:not([style])');
+            const dbUsers = Array.from(visibleCards).filter(card => card.dataset.type === 'db').length;
+            const serverUsers = Array.from(visibleCards).filter(card => card.dataset.online === 'true').length;
+            
+            // Only update if we're filtering, otherwise keep original counts
+            if (currentSearch || currentFilter !== 'all') {
+                document.getElementById('totalUsersCount').textContent = visibleCards.length;
+                document.getElementById('dbUsersCount').textContent = dbUsers;
+                document.getElementById('serverUsersCount').textContent = serverUsers;
+            } else {
+                // Reset to original counts
+                document.getElementById('totalUsersCount').textContent = <%= users.length %>;
+                document.getElementById('dbUsersCount').textContent = <%= users.filter(u => u.created_at).length %>;
+                document.getElementById('serverUsersCount').textContent = <%= users.filter(u => u.in_server).length %>;
+            }
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            currentSearch = '';
+            currentFilter = 'all';
+            
+            // Reset active filter
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('[data-filter="all"]').classList.add('active');
+            
+            filterAndSearch();
+        }
+
+        // Add Enter key support for search
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+
+        async function syncWithServer() {
+            const modal = new bootstrap.Modal(document.getElementById('loadingModal'));
+            modal.show();
+            
+            try {
+                const response = await fetch('/sync-server', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Reload the page to show updated data
+                    window.location.reload();
+                } else {
+                    alert('Error syncing with server: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Sync error:', error);
+                alert('Error syncing with server. Please try again.');
+            } finally {
+                modal.hide();
+            }
+        }
+
+        async function promoteUser(userId) {
+            if (confirm('Add this server member to the database? This will allow you to edit their data.')) {
+                try {
+                    const response = await fetch(`/edit/${userId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: new URLSearchParams({
+                            username: 'Server Member',
+                            email: '',
+                            vv_balance: '0'
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        window.location.reload();
+                    } else {
+                        alert('Error adding user to database');
+                    }
+                } catch (error) {
+                    console.error('Error promoting user:', error);
+                    alert('Error adding user to database');
+                }
+            }
+        }
+
+        // Auto-refresh every 5 minutes
+        setTimeout(() => {
+            window.location.reload();
+        }, 300000); // 5 minutes
+    </script>
+</body>
+</html>
