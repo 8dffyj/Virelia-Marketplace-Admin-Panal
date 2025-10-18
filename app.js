@@ -1,4 +1,3 @@
-// app.js - Virelia Discord User Management System
 // Ar734 - Advanced User Management Panel for Discord Communities
 
 const express = require('express');
