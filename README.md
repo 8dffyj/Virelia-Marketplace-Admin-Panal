@@ -1,4 +1,4 @@
-# VV Balance Editor - Setup Guide
+# VV Balance Editor V2 - Setup Guide
 
 A Node.js web application with Discord OAuth authentication for managing VV balances in MongoDB.
 
