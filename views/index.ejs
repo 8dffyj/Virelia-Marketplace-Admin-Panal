@@ -7,52 +7,222 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
     body {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
       min-height: 100vh;
       display: flex;
       align-items: center;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      position: relative;
+      overflow: hidden;
     }
+    
+    body::before {
+      content: '';
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(102, 126, 234, 0.3) 0%, transparent 70%);
+      top: -250px;
+      left: -250px;
+      animation: float 20s infinite ease-in-out;
+    }
+    
+    body::after {
+      content: '';
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(245, 87, 108, 0.3) 0%, transparent 70%);
+      bottom: -200px;
+      right: -200px;
+      animation: float 15s infinite ease-in-out reverse;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(50px, 50px) scale(1.1); }
+    }
+    
     .login-container {
-      background: rgba(255, 255, 255, 0.95);
-      border-radius: 20px;
-      padding: 3rem;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      background: linear-gradient(135deg, rgba(30, 30, 46, 0.95) 0%, rgba(42, 42, 62, 0.95) 100%);
+      border-radius: 30px;
+      padding: 4rem 3rem;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
       text-align: center;
-      max-width: 400px;
+      max-width: 480px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      position: relative;
+      z-index: 1;
+      animation: slideIn 0.6s ease-out;
     }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .login-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      border-radius: 30px 30px 0 0;
+    }
+    
     .logo {
-      font-size: 3rem;
-      margin-bottom: 1rem;
-      color: #667eea;
+      font-size: 4rem;
+      margin-bottom: 1.5rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: pulse 3s infinite ease-in-out;
     }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    
     h1 {
-      color: #333;
+      color: #ffffff;
       margin-bottom: 0.5rem;
       font-weight: 700;
+      font-size: 2.5rem;
+      text-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
     }
+    
     .subtitle {
-      color: #666;
-      font-size: 0.95rem;
-      margin-bottom: 2rem;
-    }
-    .btn-discord {
-      background: #5865F2;
-      border: none;
-      padding: 0.75rem 1.5rem;
+      color: #a0a0b0;
       font-size: 1rem;
-      font-weight: 600;
-      border-radius: 8px;
-      transition: all 0.3s;
+      margin-bottom: 2.5rem;
+      letter-spacing: 0.5px;
     }
+    
+    .description {
+      color: #8090a0;
+      margin-bottom: 2.5rem;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    
+    .btn-discord {
+      background: linear-gradient(135deg, #5865F2 0%, #4752C4 100%);
+      border: none;
+      padding: 1rem 2rem;
+      font-size: 1.1rem;
+      font-weight: 700;
+      border-radius: 15px;
+      transition: all 0.3s ease;
+      box-shadow: 0 8px 25px rgba(88, 101, 242, 0.4);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn-discord::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+    
+    .btn-discord:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+    
     .btn-discord:hover {
-      background: #4752C4;
-      transform: translateY(-2px);
-      box-shadow: 0 10px 20px rgba(88, 101, 242, 0.3);
+      background: linear-gradient(135deg, #4752C4 0%, #3742A0 100%);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 35px rgba(88, 101, 242, 0.5);
     }
+    
     .btn-discord {
       color: white !important;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .btn-discord i {
+      margin-right: 10px;
+      font-size: 1.3rem;
+    }
+    
+    .footer-text {
+      color: #6b7280;
+      font-size: 0.85rem;
+      margin-top: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    
+    .footer-text::before,
+    .footer-text::after {
+      content: '';
+      width: 40px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #6b7280, transparent);
+    }
+    
+    .feature-badge {
+      display: inline-block;
+      padding: 0.4rem 1rem;
+      background: rgba(102, 126, 234, 0.2);
+      border: 1px solid rgba(102, 126, 234, 0.4);
+      border-radius: 20px;
+      color: #a0a0b0;
+      font-size: 0.8rem;
+      margin: 0 0.3rem 0.5rem 0.3rem;
+      font-weight: 600;
+    }
+    
+    .features {
+      margin: 2rem 0;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    
+    @media (max-width: 576px) {
+      .login-container {
+        padding: 3rem 2rem;
+        margin: 1rem;
+      }
+      
+      h1 {
+        font-size: 2rem;
+      }
+      
+      .logo {
+        font-size: 3rem;
+      }
     }
   </style>
 </head>
@@ -64,11 +234,20 @@
       </div>
       <h1>Virelia</h1>
       <p class="subtitle">Discord User Management System</p>
-      <p style="color: #666; margin-bottom: 2rem; font-size: 0.9rem;">Login with Discord to access the dashboard</p>
+      
+      <div class="features">
+        <span class="feature-badge">🔒 Secure</span>
+        <span class="feature-badge">⚡ Fast</span>
+        <span class="feature-badge">🎨 Modern</span>
+      </div>
+      
+      <p class="description">Manage your Discord server members with powerful analytics and seamless integration</p>
+      
       <a href="/auth/discord" class="btn btn-discord w-100">
         <i class="fab fa-discord"></i> Login with Discord
       </a>
-      <p style="color: #999; font-size: 0.85rem; margin-top: 2rem;">Ar734 • Secure • Open Source</p>
+      
+      <p class="footer-text">Ar734 • Secure • Open Source</p>
     </div>
   </div>
 </body>
